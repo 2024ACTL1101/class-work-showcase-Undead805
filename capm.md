@@ -82,6 +82,13 @@ $$
 
 ```r
 #fill the code
+# Calculate daily returns df <- df %>%
+  mutate(
+    AMD_return = (AMD - lag(AMD)) / lag(AMD),
+    GSPC_return = (GSPC - lag(GSPC)) / lag(GSPC)
+)
+# Remove NA values
+df <- na.omit(df)
 ```
 
 - **Calculate Risk-Free Rate**: Calculate the daily risk-free rate by conversion of annual risk-free Rate. This conversion accounts for the compounding effect over the days of the year and is calculated using the formula:
@@ -92,6 +99,8 @@ $$
 
 ```r
 #fill the code
+# Convert the annual risk-free rate to a daily rate df <- df %>%
+  mutate(RF_daily = (1 + RF/100)^(1/360) - 1)
 ```
 
 
@@ -99,6 +108,11 @@ $$
 
 ```r
 #fill the code
+# Calculate excess returns df <- df %>%
+  mutate(
+    AMD_excess_return = AMD_return - RF_daily,
+    GSPC_excess_return = GSPC_return - RF_daily
+)
 ```
 
 
@@ -106,6 +120,8 @@ $$
 
 ```r
 #fill the code
+# Perform linear regression and thus estimate beta
+capm_model <- lm(AMD_excess_return ~ GSPC_excess_return, data = df) summary(capm_model)
 ```
 
 
@@ -114,13 +130,17 @@ $$
 What is your \(\beta\)? Is AMD more volatile or less volatile than the market?
 
 **Answer:**
-
+My beta of AMD is 1.5699987 which is approximately 1.57. This indicates that AMD is more volatile than the market. Specifically, AMD’s returns are expected to be 57% more volatile than the market’s returns. This implies that if the market goes up by 10%, AMD’s stock is expected to go up by 15.7%. Conversely, if the market goes down by 10%, AMD’s stock is expected to go down by 15.7%.
 
 #### Plotting the CAPM Line
 Plot the scatter plot of AMD vs. S&P 500 excess returns and add the CAPM regression line.
 
 ```r
 #fill the code
+# Plot scatter plot and CAPM regression line plot(df$GSPC_excess_return, df$AMD_excess_return,
+     main = "CAPM: AMD Excess Return vs. S&P 500 Excess Return",
+     xlab = "S&P 500 Excess Return", ylab = "AMD Excess Return", pch = 16)
+abline(capm_model, col = "blue")
 ```
 
 ### Step 3: Predictions Interval
@@ -132,4 +152,20 @@ Suppose the current risk-free rate is 5.0%, and the annual expected return for t
 
 ```r
 #fill the code
+# Calculate daily standard error of the forecast sf <- summary(capm_model)$sigma
+# Calculate the annual standard error for prediction
+annual_sf <- sf * sqrt(252)
+# Set the risk-free rate and expected market return
+current_rf <- 0.05
+expected_market_return <- 0.133
+# Calculate the expected return of AMD using CAPM
+expected_amd_return <- current_rf + beta_amd * (expected_market_return - current_rf)
+# Calculate the 90% prediction interval
+alpha <- 0.10
+z_value <- qnorm(1 - alpha/2)
+lower_bound <- expected_amd_return - z_value * annual_sf
+upper_bound <- expected_amd_return + z_value * annual_sf
+# Output the prediction interval
+cat("90% Prediction Interval for AMD's Annual Expected Return: [", lower_bound, ", ",
+upper_bound, "]\n")
 ```
